@@ -52,7 +52,8 @@ clientsamba = OpenAI(
 #final response saving variable
 def apicallermain(apiagent,jtitle,jdesc,jcomp,aboutys):
   finalResponse = ""
-  mainprompt = "Only provide content requested in the answer with no extra details in end or beginning or greetings or endings. So I want to create a concise yet powerful cover letter for the company"+jcomp+" and for job title"+jtitle+"the description for the job is the following"+jdesc+"and some information about me is the following"+aboutys+"write me the cover letter just the main paragraph according to the instructions given"
+  print("Generating Cover content from API call")
+  mainprompt = "Only provide content requested in the answer with no extra details in end or beginning, and no greetings like dear hiring manager etc in beginning and no endings salutations - just the main paragraphs or the content keep this in mind. So I want to create a concise yet powerful cover letter for the company"+jcomp+" and for job title"+jtitle+"the description for the job is the following"+jdesc+"and some information about me is the following"+aboutys+"write me the cover letter just the main paragraph according to the instructions given and please don't write something which is not true like some experience that i dont have just write a compelling and professional letter content according to information given"
   if apiagent == "groq":
     user_instructions = ""
     chat_completion = clientGroq.chat.completions.create(
