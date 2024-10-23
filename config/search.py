@@ -1,4 +1,29 @@
-
+import random
+def search_location():
+    search_list = [
+    "Canada"
+    ,"Pakistan",
+    "United States", 
+    "Germany", 
+    "United Kingdom", 
+    "Australia", 
+    "France", 
+    "Japan", 
+    "Netherlands", 
+    "Switzerland", 
+    "Singapore", 
+    "Sweden", 
+    "South Korea", 
+    "Ireland", 
+    "Norway", 
+    "Italy",
+    "Spain",      
+    "Finland",   
+    "Denmark",    
+    "Poland",     
+    "New Zealand" 
+    ]   
+    return random.choice(search_list)
 #LINKEDIN SEARCH PREFERENCES
 
 # Keywords to look for in LinkedIn job postings
@@ -6,7 +31,7 @@
 search_terms = ["After Effects","3D Animator","Technical Artist", "Shader specialist", "Game Programming", "3D Characters", "3D Environments", "3D Generalist", "3D Artist", "Level Designer", "Game Designer", "Game Developer"]
 
 # Specify the location for your job search. This will populate the "City, state, or zip code" field. Leave empty as "" to skip.
-search_location = ""               # Examples: "", "United States", "India", "Chicago, Illinois, United States", "90001, Los Angeles, California, United States", "Bengaluru, Karnataka, India", etc.
+search_loc = search_location()              # Examples: "", "United States", "India", "Chicago, Illinois, United States", "90001, Los Angeles, California, United States", "Bengaluru, Karnataka, India", etc.
 
 # Number of applications to submit for the current search term before moving to the next
 switch_number = 30                 # Must be a number greater than 0. Do not enclose in quotes.
