@@ -1,12 +1,17 @@
 # Easy Apply Questions & Inputs
 
 # Provide your legal name
-first_name = "Syed Muzahir"                 # First name goes here. For example: "John"
+first_name = "Syed"                 # First name goes here. For example: "John"
 middle_name = ""                           # Optional: Enter middle name. For example: "David" 
-last_name = "Abbas Naqvi"                # Last name goes here. For example: "Doe"
+last_name = "Naqvi"                # Last name goes here. For example: "Doe"
 
 # Phone number (required). Ensure its validity
-phone_number = "3125039952"        # Enter your 10-digit phone number within quotes. For example: "1234567890"
+phone_country_code = "+92"        # Enter your country code in quotes Eg: "+92", "+1"
+phone_number = "300000000"        # Enter your 10-digit phone number within quotes. For example: "1234567890"
+
+#email
+mymail = "mymail@gmail.com"
+
 
 # Specify your current city
 current_city = "Islamabad"                  # Enter your city. For example: "New York", "London"
@@ -15,9 +20,9 @@ Note: Leave empty as "" to use the job location's city.
 '''
 
 # Address details (optional for some applications)
-street = "Faisal Town"
+street = "F town"
 state = "Punjab"
-zipcode = "47040"
+zipcode = "40000"
 country = "Pakistan"
 
 ## US Equal Opportunity questions
