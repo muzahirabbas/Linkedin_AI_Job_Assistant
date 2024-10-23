@@ -1,13 +1,36 @@
+'''
+Author:     Sai Vignesh Golla
+LinkedIn:   https://www.linkedin.com/in/saivigneshgolla/
+
+Copyright (C) 2024 Sai Vignesh Golla
+
+License:    GNU Affero General Public License
+            https://www.gnu.org/licenses/agpl-3.0.en.html
+            
+GitHub:     https://github.com/GodsScion/Auto_job_applier_linkedIn
+
+'''
+
 
 # Imports
 import os
 import csv
 import re
 import pyautogui
+import time
 pyautogui.FAILSAFE = False
+from datetime import datetime
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
+from reportlab.pdfgen import canvas
 from random import choice, shuffle, randint
 from datetime import datetime
 from modules.open_chrome import *
+from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -19,6 +42,7 @@ from config.questions import *
 from config.search import *
 from config.secrets import *
 from config.settings import *
+#zchange
 from config.apicaller import *
 from config.resumenamer import *
 from modules.helpers import *
@@ -40,6 +64,7 @@ middle_name = middle_name.strip()
 last_name = last_name.strip()
 full_name = first_name + " " + middle_name + " " + last_name if middle_name else first_name + " " + last_name
 
+#zchange
 activeTitlex=""
 activeDescx=""
 activeCompanyx=""
@@ -68,6 +93,87 @@ notice_period_months = str(notice_period//30)
 notice_period_weeks = str(notice_period//7)
 notice_period = str(notice_period)
 #>
+
+
+def add_border(canvas, doc):
+    """Draw a border around the PDF page."""
+    width, height = letter
+    canvas.setStrokeColor(colors.black)
+    canvas.setLineWidth(2)
+    canvas.rect(20, 20, width - 40, height - 40)  # x, y, width, height (20 px margin)
+
+def create_cover_letter():
+    print("generating cover letter")
+    # Create a PDF document
+    signature_path = "coverletters/signature.png"
+    filename = "coverletters/cover.pdf"
+    doc = SimpleDocTemplate(os.path.abspath(filename), pagesize=letter)
+    styles = getSampleStyleSheet()
+
+    # Create custom styles for professional formatting
+    font_size = 10
+    line_spacing = 12
+
+    # Normal text style
+    normal_style = ParagraphStyle(
+        'Normal',
+        parent=styles['Normal'],
+        fontName='Times-Roman',
+        fontSize=font_size,
+        textColor=colors.black,
+        spaceAfter=1,
+        leading=line_spacing
+    )
+
+    # Bold style for headings
+    bold_style = ParagraphStyle(
+        'Bold',
+        parent=normal_style,
+        fontName='Times-Bold'
+    )
+
+    # Italic style for date and other italic text
+    italic_style = ParagraphStyle(
+        'Italic',
+        parent=normal_style,
+        fontName='Times-Italic'
+    )
+
+    # Create a list to hold the elements of the PDF
+    elements = []
+
+    # Add content paragraphs with professional formatting
+    elements.append(Paragraph("<b>"+first_name+" "+last_name+"</b>", bold_style))
+    elements.append(Paragraph("Current City: "+current_city, normal_style))
+    elements.append(Paragraph("Address: "+zipcode+" | "+street+", "+current_city+", "+country, normal_style))
+    elements.append(Paragraph("Email: "+mymail, normal_style))
+    elements.append(Paragraph("Phone: "+phone_country_code+" "+phone_number, normal_style))
+    elements.append(Spacer(1, 0.2 * inch))
+
+    # Add date with italic style
+    current_date = datetime.now()
+    formatted_date = current_date.strftime("Date: %B %d, %Y")
+    elements.append(Paragraph("<i>"+formatted_date+"</i>", italic_style))
+    elements.append(Spacer(1, 0.2 * inch))
+
+    # Add letter body
+    elements.append(Paragraph("<b>Dear Hiring Manager,</b>", bold_style))
+    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Paragraph(apicallermain(apiserver,activeTitlex,activeDescx,activeCompanyx,about_yourself), normal_style))
+    elements.append(Spacer(1, 0.2 * inch))
+
+    # Add closing signature
+    elements.append(Paragraph("<b>Sincerely,</b>", bold_style))
+    elements.append(Paragraph("<i>"+first_name+" "+last_name+"</i>", italic_style))
+    elements.append(Spacer(1, 0.5 * inch))
+
+    # Add the signature image
+    signature = Image(os.path.abspath(signature_path), width=1 * inch, height=0.5 * inch)
+    signature.hAlign = 'RIGHT'
+    elements.append(signature)
+
+    # Add the border to the document
+    doc.build(elements, onFirstPage=add_border, onLaterPages=add_border)
 
 
 #< Login Functions
@@ -148,22 +254,23 @@ def set_search_location() -> None:
     '''
     Function to set search location
     '''
-    if search_location.strip():
+    search_locationf = str(search_location())
+    if search_locationf.strip():
         try:
-            print_lg(f'Setting search location as: "{search_location.strip()}"')
+            print_lg(f'Setting search location as: "{search_locationf.strip()}"')
             search_location_ele = try_xp(driver, ".//input[@aria-label='City, state, or zip code'and not(@disabled)]", False) #  and not(@aria-hidden='true')]")
-            text_input(actions, search_location_ele, search_location, "Search Location")
+            text_input(actions, search_location_ele, search_locationf, "Search Location")
         except ElementNotInteractableException:
             try_xp(driver, ".//label[@class='jobs-search-box__input-icon jobs-search-box__keywords-label']")
             actions.send_keys(Keys.TAB, Keys.TAB).perform()
             actions.key_down(Keys.CONTROL).send_keys("a").key_up(Keys.CONTROL).perform()
-            actions.send_keys(search_location.strip()).perform()
+            actions.send_keys(search_locationf.strip()).perform()
             sleep(2)
             actions.send_keys(Keys.ENTER).perform()
             try_xp(driver, ".//button[@aria-label='Cancel']")
         except Exception as e:
             try_xp(driver, ".//button[@aria-label='Cancel']")
-            print_lg("Failed to update search location, continuing with default location!", e)
+            print_lg("Failed to update search location, continuing with default location!")
 
 
 def apply_filters() -> None:
@@ -232,7 +339,7 @@ def get_page_info() -> tuple[WebElement | None, int | None]:
         print_lg("Failed to find Pagination element, hence couldn't scroll till end!")
         pagination_element = None
         current_page = None
-        print_lg(e)
+        #print_lg(e)
     return pagination_element, current_page
 
 
@@ -252,12 +359,14 @@ def get_job_main_details(job: WebElement, blacklisted_companies: set, rejected_j
     scroll_to_view(driver, job_details_button, True)
     title = job_details_button.text
     company = job.find_element(By.CLASS_NAME, "job-card-container__primary-description").text
+    #zchange
     global activeTitlex
     activeTitlex=title
     global activeCompanyx
     activeCompanyx=company
     global default_resume_path
     default_resume_path=selectResumePath(activeTitlex)
+    print("Resume path, job title, and company selected")
     job_id = job.get_dom_attribute('data-occludable-job-id')
     work_location = job.find_element(By.CLASS_NAME, "job-card-container__metadata-item").text
     work_style = work_location[work_location.rfind('(')+1:work_location.rfind(')')]
@@ -316,7 +425,7 @@ def extract_years_of_experience(text: str) -> int:
     # Extract all patterns like '10+ years', '5 years', '3-5 years', etc.
     matches = re.findall(re_experience, text)
     if len(matches) == 0: 
-        print_lg(f'\n{text}\n\nCouldn\'t find experience requirement in About the Job!')
+        print_lg(f'\n\nCouldn\'t find experience requirement in About the Job!')
         return 0
     return max([int(match) for match in matches if int(match) <= 12])
 
@@ -325,9 +434,22 @@ def extract_years_of_experience(text: str) -> int:
 # Function to upload resume
 def upload_resume(modal: WebElement, resume: str) -> tuple[bool, str]:
     try:
-        modal.find_element(By.NAME, "file").send_keys(os.path.abspath(resume))
+        cover_letter_file_path = "coverletters/cover.pdf"
+        time.sleep(1)
+        modal.find_element(By.XPATH,".//input[@type='file' and contains(@id, 'upload-cover-letter')]")
+        create_cover_letter()
+        time.sleep(1)
+        modal.find_element(By.XPATH,".//input[@type='file' and contains(@id, 'upload-cover-letter')]").send_keys(os.path.abspath(cover_letter_file_path))
+        print("Cover letter uploaded")
+    except:
+        varskipper=1
+    try:
+        time.sleep(1)
+        modal.find_element(By.XPATH,".//input[@type='file' and contains(@id, 'upload-resume')]").send_keys(os.path.abspath(resume))
+        print("Resume uploaded")
         return True, os.path.basename(default_resume_path)
     except: return False, "Previous resume"
+
 
 # Function to answer common questions for Easy Apply
 def answer_common_questions(label: str, answer: str) -> str:
@@ -378,7 +500,7 @@ def answer_questions(questions_list: set, work_location: str) -> set:
                                 break
                         if foundOption: break
                     if not foundOption:
-                        print_lg(f'Failed to find an option with text "{answer}" for question labelled "{label_org}", answering randomly!')
+                        #print_lg(f'Failed to find an option with text "{answer}" for question labelled "{label_org}", answering randomly!')
                         select.select_by_index(randint(1, len(select.options)-1))
                         answer = select.first_selected_option.text
                         randomly_answered_questions.add((f'{label_org} [ {options} ]',"select"))
@@ -519,10 +641,12 @@ def answer_questions(questions_list: set, work_location: str) -> set:
             label = label_org.lower()
             answer = ""
             prev_answer = text_area.get_attribute("value")
-            cover_letter = apicallermain(apiserver,activeTitlex,activeDescx,activeCompanyx,about_yourself)
+            #zchange
             if not prev_answer or overwrite_previous_answers:
                 if 'summary' in label: answer = summary
-                elif 'cover' in label: answer = cover_letter
+                elif 'cover' in label: 
+                    cover_letter = apicallermain(apiserver,activeTitlex,activeDescx,activeCompanyx,about_yourself)
+                    answer = cover_letter
                 text_area.clear()
                 text_area.send_keys(answer)
                 if answer == "": 
@@ -545,7 +669,7 @@ def answer_questions(questions_list: set, work_location: str) -> set:
                     actions.move_to_element(checkbox).click().perform()
                     checked = True
                 except Exception as e: 
-                    print_lg("Checkbox click failed!", e)
+                    print_lg("Checkbox click failed!")
                     pass
             questions_list.add((f'{label} ([X] {answer})', checked, "checkbox", prev_answer))
             continue
@@ -575,15 +699,25 @@ def external_apply(pagination_element: WebElement, job_id: str, job_link: str, r
         print_lg("Easy apply failed I guess!")
         if pagination_element != None: return True, application_link, tabs_count
     try:
-        wait.until(EC.element_to_be_clickable((By.XPATH, '//button[contains(span, "Apply") and not(span[contains(@class, "disabled")])]'))).click()
-        windows = driver.window_handles
-        tabs_count = len(windows)
-        driver.switch_to.window(windows[-1])
-        application_link = driver.current_url
-        print_lg('Got the external application link "{}"'.format(application_link))
-        if close_tabs: driver.close()
-        driver.switch_to.window(linkedIn_tab)
-        return False, application_link, tabs_count
+        #apply_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'jobs-apply-button')))
+        #driver.execute_script("arguments[0].click();", apply_button)
+        save_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'jobs-save-button')))
+        save_button_text = save_button.find_element(By.XPATH, ".//span[@aria-hidden='true']").text
+        if save_button_text == "Save":
+            time.sleep(1)
+            driver.execute_script("arguments[0].click();", save_button)
+            time.sleep(2)
+            print("Job Saved Successfully to linked saved jobs as it is external!")
+        else:
+            time.sleep(2)
+        # windows = driver.window_handles
+        # tabs_count = len(windows)
+        # driver.switch_to.window(windows[-1])
+        # application_link = driver.current_url
+        # print_lg('Got the external application link "{}"'.format(application_link))
+        # if close_tabs: driver.close()
+        # driver.switch_to.window(linkedIn_tab)
+        # return False, application_link, tabs_count
     except Exception as e:
         # print_lg(e)
         print_lg("Failed to apply!")
@@ -608,7 +742,7 @@ def failed_job(job_id: str, job_link: str, resume: str, date_listed, error: str,
             writer.writerow({'Job ID':job_id, 'Job Link':job_link, 'Resume Tried':resume, 'Date listed':date_listed, 'Date Tried':datetime.now(), 'Assumed Reason':error, 'Stack Trace':exception, 'External Job link':application_link, 'Screenshot Name':screenshot_name})
             file.close()
     except Exception as e:
-        print_lg("Failed to update failed jobs list!", e)
+        print_lg("Failed to update failed jobs list!")
         pyautogui.alert("Failed to update the excel of failed jobs!\nProbably because of 1 of the following reasons:\n1. The file is currently open or in use by another program\n2. Permission denied to write to the file\n3. Failed to find the file", "Failed Logging")
 
 
@@ -646,7 +780,7 @@ def submitted_jobs(job_id: str, title: str, company: str, work_location: str, wo
                                 'External Job link':application_link, 'Questions Found':questions_list, 'Connect Request':connect_request})
         csv_file.close()
     except Exception as e:
-        print_lg("Failed to update submitted jobs list!", e)
+        print_lg("Failed to update submitted jobs list!")
         pyautogui.alert("Failed to update the excel of applied jobs!\nProbably because of 1 of the following reasons:\n1. The file is currently open or in use by another program\n2. Permission denied to write to the file\n3. Failed to find the file", "Failed Logging")
 
 
@@ -693,7 +827,7 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                 for job in job_listings:
                     if keep_screen_awake: pyautogui.press('shiftright')
                     if current_count >= switch_number: break
-                    print_lg("\n-@-\n")
+                    #print_lg("\n-@-\n")
 
                     job_id,title,company,work_location,work_style,skip = get_job_main_details(job, blacklisted_companies, rejected_jobs)
                     
@@ -702,6 +836,15 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                     try:
                         if job_id in applied_jobs or find_by_class(driver, "jobs-s-apply__application-link", 2):
                             print_lg(f'Already applied to "{title} | {company}" job. Job ID: {job_id}!')
+                            save_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'jobs-save-button')))
+                            save_button_text = save_button.find_element(By.XPATH, ".//span[@aria-hidden='true']").text
+                            if save_button_text == "Save":
+                                time.sleep(1)
+                                driver.execute_script("arguments[0].click();", save_button)
+                                time.sleep(2)
+                                print("Job Saved Successfully to linked saved jobs as it is external!")
+                            else:
+                                time.sleep(2)
                             continue
                     except Exception as e:
                         print_lg(f'Trying to Apply to "{title} | {company}" job. Job ID: {job_id}')
@@ -724,7 +867,7 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                     try:
                         rejected_jobs, blacklisted_companies, jobs_top_card = check_blacklist(rejected_jobs,job_id,company,blacklisted_companies)
                     except ValueError as e:
-                        print_lg(e, 'Skipping this job!\n')
+                        print_lg('Skipping this job!\n')
                         failed_job(job_id, job_link, resume, date_listed, "Found Blacklisted words in About Company", e, "Skipped", screenshot_name)
                         skip_count += 1
                         continue
@@ -765,43 +908,44 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                         # try: time_posted_text = find_by_class(driver, "jobs-unified-top-card__posted-date", 2).text
                         # except: 
                         time_posted_text = jobs_top_card.find_element(By.XPATH, './/span[contains(normalize-space(), " ago")]').text
-                        print("Time Posted: " + time_posted_text)
+                        #print("Time Posted: " + time_posted_text)
                         if time_posted_text.__contains__("Reposted"):
                             reposted = True
                             time_posted_text = time_posted_text.replace("Reposted", "")
                         date_listed = calculate_date_posted(time_posted_text)
                     except Exception as e:
-                        print_lg("Failed to calculate the date posted!",e)
+                        print_lg("Failed to calculate the date posted!")
 
                     # Get job description
                     try:
                         found_masters = 0
                         description = find_by_class(driver, "jobs-box__html-content").text
                         descriptionLow = description.lower()
+                        #zchange
                         global activeDescx
                         activeDescx=descriptionLow
                         skip = False
                         for word in bad_words:
                             if word.lower() in descriptionLow:
-                                message = f'\n{description}\n\nContains bad word "{word}". Skipping this job!\n'
+                                message = f'\n Contains bad word "{word}". Skipping this job!\n'
                                 reason = "Found a Bad Word in About Job"
                                 skip = True
                                 break
                         if not skip and security_clearance == False and ('polygraph' in descriptionLow or 'clearance' in descriptionLow or 'secret' in descriptionLow):
-                            message = f'\n{description}\n\nFound "Clearance" or "Polygraph". Skipping this job!\n'
+                            message = f'\n\nFound "Clearance" or "Polygraph". Skipping this job!\n'
                             reason = "Asking for Security clearance"
                             skip = True
                         if not skip:
                             if did_masters and 'master' in descriptionLow:
-                                print_lg(f'Found the word "master" in \n{description}')
+                                print_lg(f'Found the word "master"')
                                 found_masters = 2
                             experience_required = extract_years_of_experience(description)
                             if current_experience > -1 and experience_required > current_experience + found_masters:
-                                message = f'\n{description}\n\nExperience required {experience_required} > Current Experience {current_experience + found_masters}. Skipping this job!\n'
+                                message = f'\n\nExperience required {experience_required} > Current Experience {current_experience + found_masters}. Skipping this job!\n'
                                 reason = "Required experience is high"
                                 skip = True
                         if skip:
-                            print_lg(message)
+                            #print_lg(message)
                             failed_job(job_id, job_link, resume, date_listed, reason, message, "Skipped", screenshot_name)
                             rejected_jobs.add(job_id)
                             skip_count += 1
@@ -814,13 +958,45 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                         # print_lg(e)
 
                     uploaded = False
-                    # Case 1: Easy Apply Button
-                    if wait_span_click(driver, "Easy Apply", 2):
-                        try: 
+                    failedmodal=False
+                    try:
+                        easy_apply_button = WebDriverWait(driver, 10).until(
+                            EC.element_to_be_clickable((By.CLASS_NAME, 'jobs-apply-button'))
+                        )
+                    except Exception as e:
+                        print("Error finding button by class name:")
+                    if easy_apply_button is None:
+                        try:
+                            easy_apply_button = WebDriverWait(driver, 10).until(
+                                EC.element_to_be_clickable((By.CSS_SELECTOR, 'button.jobs-apply-button svg'))
+                            )
+                        except Exception as e:
+                            print("Error finding button by CSS selector:")
+                    if easy_apply_button.is_displayed() and easy_apply_button.text == "Easy Apply":
+                    #if easy_apply_button.is_displayed():
+                        driver.execute_script("arguments[0].click();", easy_apply_button)
+                        # Wait for the modal to appear
+                        buffer(3)
+                        try:
+                            # Check if the modal appears after clicking
+                            modal = WebDriverWait(driver, 5).until(
+                                EC.visibility_of_element_located((By.CLASS_NAME, 'jobs-easy-apply-modal'))
+                            )
+                            print("Modal appeared successfully!")
+                            failedmodal=False
+                        except Exception as e:
+                            print("Failed to find easy apply modal modal.")
+                            failedmodal=True
+                            
+                    #if wait_span_click(driver, "Easy Apply", 5):
+                    
+                    if easy_apply_button.is_displayed() and easy_apply_button.text == "Easy Apply":
+                        try:
                             try:
+                                if (failedmodal==True):
+                                    pyautogui.alert('Click on "Easy Apply" manually and then click OK to continue.', 'Action Required')
                                 errored = ""
                                 modal = find_by_class(driver, "jobs-easy-apply-modal")
-                                #modal = find_by_class(driver, "artdeco-modal-overlay artdeco-modal-overlay--layer-default artdeco-modal-overlay--is-top-layer  ember-view")
                                 wait_span_click(modal, "Next", 1)
                                 # if description != "Unknown":
                                 #     resume = create_custom_resume(description)
@@ -836,12 +1012,13 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                                             pyautogui.alert("Couldn't answer one or more questions.\nPlease click \"Continue\" once done.\nDO NOT CLICK Back, Next or Review button in LinkedIn.\n\n\n\n\nYou can turn off \"Pause at failed question\" setting in config.py", "Help Needed", "Continue")
                                             next_counter = 1
                                             continue
-                                        if questions_list: print_lg("Stuck for one or some of the following questions...", questions_list)
+                                        if questions_list: print_lg("Stuck for one or some of the questions...")#, questions_list)
                                         screenshot_name = screenshot(driver, job_id, "Failed at questions")
                                         errored = "stuck"
                                         raise Exception("Seems like stuck in a continuous loop of next, probably because of new questions.")
                                     questions_list = answer_questions(questions_list, work_location)
-                                    if useNewResume and not uploaded: uploaded, resume = upload_resume(modal, default_resume_path)
+                                    if useNewResume and not uploaded: 
+                                        uploaded, resume = upload_resume(modal, default_resume_path)
                                     try: next_button = modal.find_element(By.XPATH, './/span[normalize-space(.)="Review"]') 
                                     except NoSuchElementException:  next_button = modal.find_element(By.XPATH, './/button[contains(span, "Next")]')
                                     try: next_button.click()
@@ -850,9 +1027,10 @@ def apply_to_jobs(search_terms: list[str]) -> None:
 
                             except NoSuchElementException: errored = "nose"
                             finally:
-                                if questions_list and errored != "stuck": 
-                                    print_lg("Answered the following questions...", questions_list)
-                                    print("\n\n" + "\n".join(str(question) for question in questions_list) + "\n\n")
+                                if questions_list and errored != "stuck":
+                                    testss=1 
+                                    #print_lg("Answered the following questions...", questions_list)
+                                    #print("\n\n" + "\n".join(str(question) for question in questions_list) + "\n\n")
                                 wait_span_click(driver, "Review", 1, scrollTop=True)
                                 cur_pause_before_submit = pause_before_submit
                                 if errored != "stuck" and cur_pause_before_submit:
@@ -883,7 +1061,16 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                             continue
                     else:
                         # Case 2: Apply externally
-                        skip, application_link, tabs_count = external_apply(pagination_element, job_id, job_link, resume, date_listed, application_link, screenshot_name)
+                        #skip, application_link, tabs_count = external_apply(pagination_element, job_id, job_link, resume, date_listed, application_link, screenshot_name)
+                        save_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'jobs-save-button')))
+                        save_button_text = save_button.find_element(By.XPATH, ".//span[@aria-hidden='true']").text
+                        if save_button_text == "Save":
+                            time.sleep(1)
+                            driver.execute_script("arguments[0].click();", save_button)
+                            time.sleep(2)
+                            print("Job Saved Successfully to linked saved jobs as it is external!")
+                        else:
+                            time.sleep(2)
                         if dailyEasyApplyLimitReached:
                             print_lg("\n###############  Daily application limit for Easy Apply is reached!  ###############\n")
                             return
@@ -992,14 +1179,16 @@ def main() -> None:
         critical_error_log("In Applier Main", e)
         pyautogui.alert(e,alert_title)
     finally:
-        print_lg("\n\nTotal runs:                     {}".format(total_runs))
-        print_lg("Jobs Easy Applied:              {}".format(easy_applied_count))
-        print_lg("External job links collected:   {}".format(external_jobs_count))
-        print_lg("                              ----------")
-        print_lg("Total applied or collected:     {}".format(easy_applied_count + external_jobs_count))
-        print_lg("\nFailed jobs:                    {}".format(failed_count))
-        print_lg("Irrelevant jobs skipped:        {}\n".format(skip_count))
-        if randomly_answered_questions: print_lg("\n\nQuestions randomly answered:\n  {}  \n\n".format(";\n".join(str(question) for question in randomly_answered_questions)))
+        #print_lg("\n\nTotal runs:                     {}".format(total_runs))
+        #print_lg("Jobs Easy Applied:              {}".format(easy_applied_count))
+        #print_lg("External job links collected:   {}".format(external_jobs_count))
+       # print_lg("                              ----------")
+       # print_lg("Total applied or collected:     {}".format(easy_applied_count + external_jobs_count))
+        #print_lg("\nFailed jobs:                    {}".format(failed_count))
+        #print_lg("Irrelevant jobs skipped:        {}\n".format(skip_count))
+        if randomly_answered_questions: 
+            testtt=1
+            # print_lg("\n\nQuestions randomly answered:\n  {}  \n\n".format(";\n".join(str(question) for question in randomly_answered_questions)))
         quote = choice([
             "You're one step closer than before.", 
             "All the best with your future interviews.", 
@@ -1016,11 +1205,11 @@ def main() -> None:
             ])
         msg = f"\n{quote}\n\n\nBest regards,\nSai Vignesh Golla\nhttps://www.linkedin.com/in/saivigneshgolla/\n\n"
         pyautogui.alert(msg, "Exiting..")
-        print_lg(msg,"Closing the browser...")
+        print_lg("Closing the browser...")
         if tabs_count >= 10:
             msg = "NOTE: IF YOU HAVE MORE THAN 10 TABS OPENED, PLEASE CLOSE OR BOOKMARK THEM!\n\nOr it's highly likely that application will just open browser and not do anything next time!" 
             pyautogui.alert(msg,"Info")
-            print_lg("\n"+msg)
+            #print_lg("\n"+msg)
         try: driver.quit()
         except Exception as e: critical_error_log("When quitting...", e)
 
